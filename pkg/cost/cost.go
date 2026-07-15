@@ -84,7 +84,7 @@ func GetCustomCosts(client Exporter, pricer *Pricer, cache *WindowCache, cfg *co
 			continue
 		}
 
-		counts, order := dedupByNamespace(recs)
+		counts, order := dedupClients(recs)
 		prices := pricer.Price(counts, start, end)
 		resp := buildResponse(cfg, start, end, counts, order, prices)
 
@@ -100,41 +100,52 @@ func GetCustomCosts(client Exporter, pricer *Pricer, cache *WindowCache, cfg *co
 	return results
 }
 
-// dedupByNamespace counts distinct client_ids per namespace. A client_id is
-// counted exactly once (first occurrence wins). Returns counts and a sorted
-// namespace order for deterministic output.
-func dedupByNamespace(recs []vault.ClientRecord) (map[string]int, []string) {
+// clientKey groups distinct clients by Vault namespace and client type. Vault
+// counts entity, non-entity, acme, and secret-sync clients separately, so they
+// are reported as separate cost lines.
+type clientKey struct {
+	ns    string
+	ctype string
+}
+
+func (k clientKey) String() string { return k.ns + "|" + k.ctype }
+
+// dedupClients counts distinct client_ids per (namespace, client type). A
+// client_id is counted once (first occurrence wins). Returns the counts and a
+// stable, sorted key order for deterministic output.
+func dedupClients(recs []vault.ClientRecord) (map[clientKey]int, []clientKey) {
 	seen := make(map[string]struct{}, len(recs))
-	counts := map[string]int{}
+	counts := map[clientKey]int{}
 	for _, r := range recs {
 		if _, dup := seen[r.ClientID]; dup {
 			continue
 		}
 		seen[r.ClientID] = struct{}{}
-		counts[r.Namespace()]++
+		counts[clientKey{r.Namespace(), r.ClientTypeLabel()}]++
 	}
-	order := make([]string, 0, len(counts))
-	for ns := range counts {
-		order = append(order, ns)
+	order := make([]clientKey, 0, len(counts))
+	for k := range counts {
+		order = append(order, k)
 	}
-	sort.Strings(order)
+	sort.Slice(order, func(i, j int) bool { return order[i].String() < order[j].String() })
 	return counts, order
 }
 
 // Price returns namespace -> BilledCost for the window, prorated to the window's
 // fraction of its calendar month.
-func (p *Pricer) Price(counts map[string]int, start, end time.Time) map[string]float64 {
+func (p *Pricer) Price(counts map[clientKey]int, start, end time.Time) map[clientKey]float64 {
 	frac := monthFraction(start, end)
 	if p.cfg.CostModel == config.ModelPerClient {
 		perClient := p.cfg.AnnualLicenseCost / float64(p.cfg.LicensedClients) / 12.0 * frac
-		res := make(map[string]float64, len(counts))
-		for ns, c := range counts {
-			res[ns] = roundCents(float64(c) * perClient)
+		res := make(map[clientKey]float64, len(counts))
+		for k, c := range counts {
+			res[k] = roundCents(float64(c) * perClient)
 		}
 		return res
 	}
-	// full_allocation: split the (prorated) monthly bucket across namespaces by
-	// their share of distinct clients, summing exactly to the bucket.
+	// full_allocation: split the (prorated) monthly bucket across all
+	// (namespace, type) buckets by their share of distinct clients, summing
+	// exactly to the bucket.
 	bucket := p.cfg.AnnualLicenseCost / 12.0 * frac
 	return splitBucket(bucket, counts)
 }
@@ -153,66 +164,66 @@ func monthFraction(start, end time.Time) float64 {
 
 // splitBucket distributes bucket across namespaces by client share, using the
 // largest-remainder method in whole cents so the parts sum exactly to bucket.
-func splitBucket(bucket float64, counts map[string]int) map[string]float64 {
-	res := map[string]float64{}
+func splitBucket(bucket float64, counts map[clientKey]int) map[clientKey]float64 {
+	res := map[clientKey]float64{}
 	total := 0
 	for _, c := range counts {
 		total += c
 	}
 	if total == 0 || bucket <= 0 {
-		for ns := range counts {
-			res[ns] = 0
+		for k := range counts {
+			res[k] = 0
 		}
 		return res
 	}
 	cents := int64(math.Round(bucket * 100))
 
 	type rem struct {
-		ns  string
+		key clientKey
 		rem float64
 	}
 	rems := make([]rem, 0, len(counts))
 	var allocated int64
-	for ns, c := range counts {
+	for k, c := range counts {
 		exact := float64(cents) * float64(c) / float64(total)
 		fl := int64(math.Floor(exact))
-		res[ns] = float64(fl) / 100.0
+		res[k] = float64(fl) / 100.0
 		allocated += fl
-		rems = append(rems, rem{ns, exact - float64(fl)})
+		rems = append(rems, rem{k, exact - float64(fl)})
 	}
-	// Assign leftover cents to the largest remainders (ties broken by name).
+	// Assign leftover cents to the largest remainders (ties broken by key).
 	sort.Slice(rems, func(i, j int) bool {
 		if rems[i].rem != rems[j].rem {
 			return rems[i].rem > rems[j].rem
 		}
-		return rems[i].ns < rems[j].ns
+		return rems[i].key.String() < rems[j].key.String()
 	})
 	for i := int64(0); i < cents-allocated && len(rems) > 0; i++ {
-		ns := rems[i%int64(len(rems))].ns
-		res[ns] = roundCents(res[ns] + 0.01)
+		k := rems[i%int64(len(rems))].key
+		res[k] = roundCents(res[k] + 0.01)
 	}
 	return res
 }
 
 func roundCents(x float64) float64 { return math.Round(x*100) / 100 }
 
-func buildResponse(cfg *config.Config, start, end time.Time, counts map[string]int, order []string, prices map[string]float64) *pb.CustomCostResponse {
+func buildResponse(cfg *config.Config, start, end time.Time, counts map[clientKey]int, order []clientKey, prices map[clientKey]float64) *pb.CustomCostResponse {
 	costs := make([]*pb.CustomCost, 0, len(order))
-	for _, ns := range order {
-		cost := prices[ns]
+	for _, k := range order {
+		cost := prices[k]
 		costs = append(costs, &pb.CustomCost{
-			AccountName:    cfg.TeamFor(ns),
+			AccountName:    cfg.TeamFor(k.ns),
 			ChargeCategory: "License",
-			Description:    "Vault Enterprise distinct client license allocation",
-			ResourceName:   ns,
-			ResourceType:   "vault-clients",
-			Id:             ns,
-			ProviderId:     "vault/" + ns,
-			Labels:         map[string]string{"vault_namespace": ns},
+			Description:    "Vault Enterprise " + k.ctype + " client license allocation",
+			ResourceName:   k.ns,
+			ResourceType:   "vault-clients-" + k.ctype,
+			Id:             k.ns + "/" + k.ctype,
+			ProviderId:     "vault/" + k.ns + "/" + k.ctype,
+			Labels:         map[string]string{"vault_namespace": k.ns, "client_type": k.ctype},
 			ListCost:       float32(cost),
 			ListUnitPrice:  0,
 			BilledCost:     float32(cost),
-			UsageQuantity:  float32(counts[ns]),
+			UsageQuantity:  float32(counts[k]),
 			UsageUnit:      "clients",
 		})
 	}

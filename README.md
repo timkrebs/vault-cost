@@ -6,17 +6,21 @@ Costs view under the `vault` domain.
 
 Vault Enterprise is licensed by client count, but that spend usually arrives as
 a single number with no idea of which team drove it. This plugin reads Vault's
-client activity, groups it by Vault namespace, applies a pricing model you pick,
-and reports it to Kubecost so it sits next to the rest of your infrastructure
-cost.
+client activity, groups it by Vault namespace and client type, applies a pricing
+model you pick, and reports it to Kubecost so it sits next to the rest of your
+infrastructure cost.
 
 ## What it does
 
 - Reads client activity from Vault's Activity Export API
   (`sys/internal/counters/activity/export`).
-- De-duplicates by `client_id` and groups clients by Vault namespace.
-- Prices each namespace (`per_client` or `full_allocation`).
-- Emits one cost record per namespace, tagged with a cost center you map.
+- De-duplicates by `client_id` and groups clients by Vault namespace and client
+  type (`entity`, `non-entity`, `acme`, `secret-sync`) — the same types Vault
+  counts separately.
+- Prices each namespace / client-type bucket (`per_client` or
+  `full_allocation`).
+- Emits one cost record per namespace and client type, tagged with a cost
+  center you map and a `client_type` label.
 
 ## Requirements
 
@@ -107,7 +111,12 @@ the init container.
 In the UI: Monitor → External Costs, filter Domain = `vault`. Or query the API:
 
 ```sh
+# by namespace + client type (resource name is the namespace, resource type is
+# vault-clients-<type>, e.g. vault-clients-acme)
 curl "http://<cost-analyzer>/model/customCost/total?window=month&aggregate=resourceName"
+
+# roll up by client type across all namespaces (entity vs acme vs ...)
+curl "http://<cost-analyzer>/model/customCost/total?window=month&aggregate=resourceType"
 ```
 
 ## Notes

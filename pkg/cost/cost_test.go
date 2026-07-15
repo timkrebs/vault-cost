@@ -52,6 +52,7 @@ func loadRecs(t *testing.T) []vault.ClientRecord {
 
 type projCost struct {
 	Namespace string  `json:"namespace"`
+	Type      string  `json:"type"`
 	Account   string  `json:"account"`
 	Usage     int     `json:"usage"`
 	Unit      string  `json:"unit"`
@@ -69,6 +70,7 @@ func project(r *pb.CustomCostResponse) proj {
 	for _, c := range r.Costs {
 		p.Costs = append(p.Costs, projCost{
 			Namespace: c.ResourceName,
+			Type:      c.Labels["client_type"],
 			Account:   c.AccountName,
 			Usage:     int(c.UsageQuantity),
 			Unit:      c.UsageUnit,
@@ -93,20 +95,31 @@ func loadGolden(t *testing.T, name string) proj {
 
 func buildForModel(t *testing.T, model config.CostModel) *pb.CustomCostResponse {
 	cfg := testCfg(model)
-	counts, order := dedupByNamespace(loadRecs(t))
+	counts, order := dedupClients(loadRecs(t))
 	prices := NewPricer(cfg).Price(counts, sept1, oct1)
 	return buildResponse(cfg, sept1, oct1, counts, order, prices)
 }
 
-func TestDedupByNamespace(t *testing.T) {
-	counts, order := dedupByNamespace(loadRecs(t))
-	if counts["team-a/"] != 6 {
-		t.Errorf("team-a: want 6 distinct, got %d", counts["team-a/"])
+func TestDedupClients(t *testing.T) {
+	counts, order := dedupClients(loadRecs(t))
+	want := map[clientKey]int{
+		{"team-a/", "entity"}:     4,
+		{"team-a/", "acme"}:       1,
+		{"team-b/", "entity"}:     3,
+		{"team-b/", "non-entity"}: 1,
+		{"team-b/", "acme"}:       1,
 	}
-	if counts["team-b/"] != 4 {
-		t.Errorf("team-b: want 4 distinct, got %d", counts["team-b/"])
+	if !reflect.DeepEqual(counts, want) {
+		t.Errorf("counts mismatch:\n got=%v\nwant=%v", counts, want)
 	}
-	if !reflect.DeepEqual(order, []string{"team-a/", "team-b/"}) {
+	wantOrder := []clientKey{
+		{"team-a/", "acme"},
+		{"team-a/", "entity"},
+		{"team-b/", "acme"},
+		{"team-b/", "entity"},
+		{"team-b/", "non-entity"},
+	}
+	if !reflect.DeepEqual(order, wantOrder) {
 		t.Errorf("order not sorted: %v", order)
 	}
 }

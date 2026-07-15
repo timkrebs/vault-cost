@@ -22,3 +22,24 @@ func (r ClientRecord) Namespace() string {
 	}
 	return "root"
 }
+
+// ClientTypeLabel normalizes the raw Vault client_type into a short, stable
+// label used as the cost breakdown dimension. Vault counts these types
+// separately (entity, non-entity, acme, secret-sync); unknown values pass
+// through unchanged.
+func (r ClientRecord) ClientTypeLabel() string {
+	switch r.ClientType {
+	case "entity":
+		return "entity"
+	case "non-entity-token", "non-entity", "nonentity":
+		return "non-entity"
+	case "pki-acme", "acme":
+		return "acme"
+	case "secret-sync", "secret_sync", "secret-sync-association":
+		return "secret-sync"
+	case "":
+		return "unknown"
+	default:
+		return r.ClientType
+	}
+}
