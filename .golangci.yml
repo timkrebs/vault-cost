@@ -1,0 +1,72 @@
+# golangci-lint configuration (schema v2).
+# Run locally with: golangci-lint run
+version: "2"
+
+run:
+  timeout: 5m
+
+linters:
+  # "standard" = errcheck, govet, ineffassign, staticcheck, unused.
+  default: standard
+  enable:
+    - bodyclose
+    - copyloopvar
+    - dupword
+    - errorlint
+    - gocheckcompilerdirectives
+    - gocritic
+    - gosec
+    - misspell
+    - nakedret
+    - nolintlint
+    - prealloc
+    - revive
+    - unconvert
+    - unparam
+    - whitespace
+  settings:
+    misspell:
+      locale: US
+    nolintlint:
+      require-explanation: true
+      require-specific: true
+      allow-unused: false
+    revive:
+      rules:
+        - name: exported
+        - name: package-comments
+        - name: var-declaration
+        - name: blank-imports
+        - name: context-as-argument
+        - name: error-return
+        - name: error-strings
+        - name: error-naming
+        - name: if-return
+        - name: indent-error-flow
+        - name: unexported-return
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    rules:
+      # Test files may cut corners the production code should not.
+      - path: _test\.go
+        linters:
+          - gosec
+          - unparam
+          - prealloc
+          - errcheck
+
+formatters:
+  enable:
+    - gofmt
+    - goimports
+  settings:
+    goimports:
+      local-prefixes:
+        - github.com/timkrebs/vault-cost
+  exclusions:
+    generated: lax

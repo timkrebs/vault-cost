@@ -3,19 +3,31 @@ IMAGE    ?= vault-ocplugin:dev
 GOARCH   ?= amd64
 LDFLAGS  := -s -w
 
-.PHONY: all tidy test cover build build-all image clean
+.PHONY: all check tidy fmt lint test cover vulncheck build build-all image clean
 
-all: tidy test build
+all: tidy lint test build
+
+# Run the same gates CI enforces.
+check: fmt lint test vulncheck
 
 tidy:
 	go mod tidy
 
+fmt:
+	gofmt -w .
+
+lint:
+	golangci-lint run
+
 test:
-	go test ./... -count=1
+	go test ./... -race -count=1
 
 cover:
-	go test ./... -covermode=count -coverprofile=coverage.out
+	go test ./... -covermode=atomic -coverprofile=coverage.out
 	go tool cover -func=coverage.out | tail -n1
+
+vulncheck:
+	go run golang.org/x/vuln/cmd/govulncheck@latest ./...
 
 # Build a single linux binary named per the OpenCost convention:
 #   vault.ocplugin.linux.<arch>

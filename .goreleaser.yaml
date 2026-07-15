@@ -1,0 +1,96 @@
+# GoReleaser configuration. Docs: https://goreleaser.com
+# Validate with: goreleaser check
+# Dry run with:  goreleaser release --snapshot --clean
+version: 2
+
+project_name: vault-cost
+
+before:
+  hooks:
+    - go mod tidy
+    - go mod verify
+
+builds:
+  - id: vault-ocplugin
+    main: ./cmd/vault
+    # OpenCost loads the binary by this exact name from the shared plugin dir.
+    binary: vault.ocplugin.{{ .Os }}.{{ .Arch }}
+    env:
+      - CGO_ENABLED=0
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w
+    goos:
+      - linux
+    goarch:
+      - amd64
+      - arm64
+    mod_timestamp: "{{ .CommitTimestamp }}"
+
+archives:
+  - id: default
+    formats: [tar.gz]
+    name_template: >-
+      {{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}
+    files:
+      - LICENSE
+      - README.md
+      - src: deploy/**/*
+        strip_parent: false
+
+checksum:
+  name_template: checksums.txt
+  algorithm: sha256
+
+sboms:
+  - id: archives
+    artifacts: archive
+
+# Keyless (OIDC) signing of the checksum file with cosign.
+signs:
+  - cmd: cosign
+    certificate: "${artifact}.pem"
+    signature: "${artifact}.sig"
+    args:
+      - sign-blob
+      - "--yes"
+      - "--output-certificate=${certificate}"
+      - "--output-signature=${signature}"
+      - "${artifact}"
+    artifacts: checksum
+    output: true
+
+changelog:
+  use: github
+  sort: asc
+  groups:
+    - title: Features
+      regexp: '^.*?feat(\(.+\))??!?:.+$'
+      order: 0
+    - title: Bug fixes
+      regexp: '^.*?fix(\(.+\))??!?:.+$'
+      order: 1
+    - title: Others
+      order: 999
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^chore:"
+      - "^ci:"
+      - "Merge pull request"
+      - "Merge branch"
+
+release:
+  draft: false
+  prerelease: auto
+  footer: |
+    ---
+    ### Container image
+
+    ```
+    ghcr.io/timkrebs/vault-cost:{{ .Tag }}
+    ```
+
+    Built for `linux/amd64` and `linux/arm64`.

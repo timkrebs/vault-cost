@@ -1,0 +1,55 @@
+name: Bug report
+description: Report a problem with the plugin
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. Please do not include Vault tokens, unseal keys,
+        or other secrets in logs or output you paste here.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: A clear description of the bug and what you expected instead.
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Configure the plugin with ...
+        2. Query customCost ...
+        3. See ...
+    validations:
+      required: true
+  - type: input
+    id: plugin-version
+    attributes:
+      label: Plugin version / image tag
+      placeholder: "v0.2.0 or ghcr.io/timkrebs/vault-cost@sha256:..."
+    validations:
+      required: true
+  - type: input
+    id: kubecost-version
+    attributes:
+      label: Kubecost (cost-analyzer) version
+      placeholder: "2.8.6"
+    validations:
+      required: true
+  - type: input
+    id: vault-version
+    attributes:
+      label: Vault version
+      placeholder: "1.20.x+ent"
+    validations:
+      required: false
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs
+      description: Plugin logs from the cloud-cost container. Secrets removed.
+      render: shell
+    validations:
+      required: false

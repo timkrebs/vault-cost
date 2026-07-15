@@ -1,5 +1,10 @@
 # vault-cost
 
+[![ci](https://github.com/timkrebs/vault-cost/actions/workflows/ci.yml/badge.svg)](https://github.com/timkrebs/vault-cost/actions/workflows/ci.yml)
+[![release](https://github.com/timkrebs/vault-cost/actions/workflows/release.yml/badge.svg)](https://github.com/timkrebs/vault-cost/actions/workflows/release.yml)
+[![Go Report Card](https://goreportcard.com/badge/github.com/timkrebs/vault-cost)](https://goreportcard.com/report/github.com/timkrebs/vault-cost)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 A Kubecost / OpenCost custom-cost plugin that turns HashiCorp Vault Enterprise
 client counts into per-namespace license cost, shown in Kubecost's External
 Costs view under the `vault` domain.
@@ -27,7 +32,7 @@ infrastructure cost.
 - Kubecost **2.x** (the `cost-analyzer` chart). The plugin interface used here
   was removed in Kubecost 3.x.
 - Vault Enterprise with client counting enabled (on by default).
-- To build and deploy: Go 1.22+, Docker (buildx), helm, kubectl, the vault CLI,
+- To build and deploy: Go 1.24+, Docker (buildx), helm, kubectl, the vault CLI,
   and a container registry your cluster can pull from.
 
 ## Build
@@ -127,6 +132,16 @@ curl "http://<cost-analyzer>/model/customCost/total?window=month&aggregate=resou
 - The plugin runs inside the cost-analyzer `cloud-cost` container; OpenCost
   starts it with the config file path as the first argument.
 - Enable Vault TLS and leave `insecureSkipVerify` off outside of testing.
+
+## Contributing
+
+Issues and pull requests are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for
+the development workflow and [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md). Please
+report security issues privately per [SECURITY.md](SECURITY.md).
+
+## License
+
+MIT — see [LICENSE](LICENSE).
 
 ## License
 
