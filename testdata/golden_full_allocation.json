@@ -1,0 +1,8 @@
+{
+  "currency": "EUR",
+  "domain": "vault",
+  "costs": [
+    { "namespace": "team-a/", "account": "CC-1001", "usage": 6, "unit": "clients", "billed": 6000 },
+    { "namespace": "team-b/", "account": "CC-1002", "usage": 4, "unit": "clients", "billed": 4000 }
+  ]
+}

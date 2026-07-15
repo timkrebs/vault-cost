@@ -1,0 +1,12 @@
+{"client_id":"a1","namespace_id":"aaaa1","namespace_path":"team-a/","mount_accessor":"auth_userpass_1","client_type":"entity"}
+{"client_id":"a2","namespace_id":"aaaa1","namespace_path":"team-a/","mount_accessor":"auth_userpass_1","client_type":"entity"}
+{"client_id":"a3","namespace_id":"aaaa1","namespace_path":"team-a/","mount_accessor":"auth_userpass_1","client_type":"entity"}
+{"client_id":"a4","namespace_id":"aaaa1","namespace_path":"team-a/","mount_accessor":"auth_userpass_1","client_type":"entity"}
+{"client_id":"a5","namespace_id":"aaaa1","namespace_path":"team-a/","mount_accessor":"auth_userpass_1","client_type":"non-entity-token"}
+{"client_id":"a6","namespace_id":"aaaa1","namespace_path":"team-a/","mount_accessor":"auth_userpass_1","client_type":"entity"}
+{"client_id":"a1","namespace_id":"aaaa1","namespace_path":"team-a/","mount_accessor":"auth_userpass_1","client_type":"entity"}
+
+{"client_id":"b1","namespace_id":"bbbb2","namespace_path":"team-b/","mount_accessor":"auth_userpass_2","client_type":"entity"}
+{"client_id":"b2","namespace_id":"bbbb2","namespace_path":"team-b/","mount_accessor":"auth_userpass_2","client_type":"entity"}
+{"client_id":"b3","namespace_id":"bbbb2","namespace_path":"team-b/","mount_accessor":"auth_userpass_2","client_type":"entity"}
+{"client_id":"b4","namespace_id":"bbbb2","namespace_path":"team-b/","mount_accessor":"auth_userpass_2","client_type":"entity"}

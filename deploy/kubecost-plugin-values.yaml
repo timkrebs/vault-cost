@@ -1,0 +1,41 @@
+# Kubecost plugin overlay (CUSTOMER TEMPLATE) - replace <PLACEHOLDERS>.
+#
+# Layer on top of your existing Kubecost (cost-analyzer, 2.x) install:
+#   helm upgrade <release> kubecost/cost-analyzer -n <ns> \
+#     -f <your-existing-values.yaml> -f kubecost-plugin-values.yaml
+#
+# The custom binary is shipped by the init container defined in
+# kubecost-cost-analyzer-plugin-patch.yaml (applied separately). The block under
+# configs.vault becomes the secret file the plugin reads at
+# /opt/opencost/plugin/config/vault_config.json (OpenCost passes that path to
+# the plugin as its first CLI argument).
+
+kubecostModel:
+  plugins:
+    enabled: true
+    install:
+      # Required for a valid manifest (provides the install-script volume). The
+      # official downloader cannot fetch a custom plugin, so the plugin-installer
+      # init container is OVERRIDDEN by the patch to ship your prebuilt binary.
+      enabled: true
+    folder: /opt/opencost/plugin
+    enabledPlugins:
+      - vault
+    configs:
+      vault: |
+        {
+          "vaultAddress": "<VAULT_ADDRESS e.g. https://vault.vault.svc:8200>",
+          "insecureSkipVerify": false,
+          "authMethod": "kubernetes",
+          "kubernetesRole": "kubecost-vault-cost",
+          "kubernetesMount": "kubernetes",
+          "annualLicenseCost": <ANNUAL_LICENSE_COST e.g. 100000>,
+          "licensedClients": <LICENSED_CLIENTS e.g. 120>,
+          "currency": "<CURRENCY e.g. USD>",
+          "costModel": "<full_allocation | per_client>",
+          "namespaceTeamMapping": {
+            "team-a/": "<COST_CENTER>",
+            "root": "<COST_CENTER>"
+          },
+          "logLevel": "info"
+        }

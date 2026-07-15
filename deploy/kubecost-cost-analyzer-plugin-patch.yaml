@@ -1,0 +1,21 @@
+# Strategic-merge patch (CUSTOMER TEMPLATE) - replace <REGISTRY>/<TAG>.
+#
+# Overrides Kubecost's official plugin-installer init container (which can only
+# download official plugins) with your image, whose ship-plugin.sh copies the
+# prebuilt binary into the chart's shared plugins-dir at
+# /opt/opencost/plugin/bin/vault.ocplugin.linux.<arch>.
+#
+# Apply AFTER the helm upgrade that enables plugins:
+#   kubectl -n <ns> patch deployment <cost-analyzer-deployment> \
+#     --type=strategic --patch-file kubecost-cost-analyzer-plugin-patch.yaml
+#
+# NOTE: re-apply after every `helm upgrade` (it resets the init container).
+spec:
+  template:
+    spec:
+      initContainers:
+        # merges by name onto the chart's plugin-installer; keeps its
+        # volumeMounts (plugins-dir, install-script) and securityContext.
+        - name: plugin-installer
+          image: <REGISTRY>/vault-ocplugin:<TAG>
+          command: ["/usr/local/bin/ship-plugin.sh"]

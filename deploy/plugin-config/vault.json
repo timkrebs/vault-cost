@@ -1,0 +1,18 @@
+{
+  "vaultAddress": "http://vault.vault.svc.cluster.local:8200",
+  "insecureSkipVerify": false,
+  "authMethod": "kubernetes",
+  "kubernetesRole": "kubecost-vault-cost",
+  "kubernetesMount": "kubernetes",
+  "annualLicenseCost": 100000,
+  "licensedClients": 120,
+  "currency": "USD",
+  "costModel": "per_client",
+  "namespaceTeamMapping": {
+    "root": "platform"
+  },
+  "logLevel": "info",
+  "exportRatePerSec": 5,
+  "exportRateBurst": 5,
+  "requestTimeoutSec": 60
+}
