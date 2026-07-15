@@ -36,7 +36,7 @@ func NewClient(cfg *config.Config) (*Client, error) {
 	tr := &http.Transport{}
 	if cfg.InsecureSkipVerify {
 		// Dev/test only; do not use against a TLS-enabled Vault in production.
-		tr.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+		tr.TLSClientConfig = &tls.Config{InsecureSkipVerify: true} //nolint:gosec // opt-in dev/test flag, guarded by config and documented
 	}
 	return &Client{
 		cfg: cfg,

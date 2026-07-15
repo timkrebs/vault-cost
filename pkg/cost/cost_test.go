@@ -96,7 +96,7 @@ func loadGolden(t *testing.T, name string) proj {
 func buildForModel(t *testing.T, model config.CostModel) *pb.CustomCostResponse {
 	cfg := testCfg(model)
 	counts, order := dedupClients(loadRecs(t))
-	prices := NewPricer(cfg).Price(counts, sept1, oct1)
+	prices := NewPricer(cfg).price(counts, sept1, oct1)
 	return buildResponse(cfg, sept1, oct1, counts, order, prices)
 }
 

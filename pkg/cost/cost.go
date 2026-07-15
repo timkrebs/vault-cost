@@ -1,6 +1,7 @@
 // Package cost turns Vault Activity Export records into FOCUS-conformant
-// OpenCost CustomCost records: dedup by client_id, group by namespace, price
-// per the configured model, and emit one CustomCost per namespace.
+// OpenCost CustomCost records: dedup by client_id, group by namespace and
+// client type, price per the configured model, and emit one CustomCost per
+// (namespace, client type).
 package cost
 
 import (
@@ -85,7 +86,7 @@ func GetCustomCosts(client Exporter, pricer *Pricer, cache *WindowCache, cfg *co
 		}
 
 		counts, order := dedupClients(recs)
-		prices := pricer.Price(counts, start, end)
+		prices := pricer.price(counts, start, end)
 		resp := buildResponse(cfg, start, end, counts, order, prices)
 
 		// Cache only CLOSED windows that produced cost records. Open (in-progress)
@@ -133,7 +134,7 @@ func dedupClients(recs []vault.ClientRecord) (map[clientKey]int, []clientKey) {
 
 // Price returns namespace -> BilledCost for the window, prorated to the window's
 // fraction of its calendar month.
-func (p *Pricer) Price(counts map[clientKey]int, start, end time.Time) map[clientKey]float64 {
+func (p *Pricer) price(counts map[clientKey]int, start, end time.Time) map[clientKey]float64 {
 	frac := monthFraction(start, end)
 	if p.cfg.CostModel == config.ModelPerClient {
 		perClient := p.cfg.AnnualLicenseCost / float64(p.cfg.LicensedClients) / 12.0 * frac

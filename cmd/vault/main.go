@@ -40,7 +40,9 @@ func main() {
 	if err != nil {
 		log.Fatalf("vault plugin: loading config: %v", err)
 	}
-	log.SetLogLevel(cfg.LogLevel)
+	if err := log.SetLogLevel(cfg.LogLevel); err != nil {
+		log.Warnf("vault plugin: invalid logLevel %q, using default: %v", cfg.LogLevel, err)
+	}
 	// Redacted() never includes the token.
 	log.Infof("vault plugin starting with config: %s", cfg.Redacted())
 
