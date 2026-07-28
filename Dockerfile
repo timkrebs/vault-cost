@@ -7,7 +7,7 @@
 # Build (run `make tidy` first so go.sum exists):
 #   docker buildx build --platform=linux/amd64,linux/arm64 -t <registry>/vault-ocplugin:<tag> --push .
 
-FROM --platform=$BUILDPLATFORM golang:1.24 AS build
+FROM --platform=$BUILDPLATFORM golang:1.26 AS build
 ARG TARGETARCH
 WORKDIR /src
 COPY go.mod go.sum* ./
