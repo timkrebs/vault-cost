@@ -17,7 +17,7 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=${TARGETARCH} \
     go build -trimpath -ldflags="-s -w" \
     -o /out/vault.ocplugin.linux.${TARGETARCH} ./cmd/vault
 
-FROM alpine:3.20
+FROM alpine:3.24
 ARG TARGETARCH
 RUN adduser -D -u 65532 nonroot
 # Artifacts staged here; ship-plugin.sh copies them into the shared volume.
